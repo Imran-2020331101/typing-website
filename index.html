@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>KeyFlow — Typing Speed Test</title>
+  <meta name="description" content="A fast, minimal typing speed test. Practice your WPM, track accuracy, and improve your typing — no sign-up required.">
+  <link rel="canonical" href="https://your-domain.vercel.app/">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="KeyFlow — Typing Speed Test">
+  <meta property="og:description" content="A fast, minimal typing speed test. Practice your WPM, track accuracy, and improve your typing.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://your-domain.vercel.app/">
+
+  <!-- Preload mono font for snappy rendering -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="wrapper" role="main">
+
+    <!-- Logo -->
+    <header class="header">
+      <h1 class="logo">key<span>flow_</span></h1>
+      <button class="comp-btn" id="comp-btn" aria-label="Create or join a competition">🏆 Compete</button>
+    </header>
+
+    <!-- Competition banner (visible in competition mode) -->
+    <div class="comp-banner" id="comp-banner" style="display:none" aria-live="polite">
+      <span class="comp-banner-icon">🏆</span>
+      <span id="comp-banner-text"></span>
+      <span class="comp-banner-sep">•</span>
+      <span id="comp-banner-deadline"></span>
+      <button class="comp-banner-leave" id="comp-leave-btn" aria-label="Leave competition">✕</button>
+    </div>
+
+    <!-- Duration selector -->
+    <nav class="settings" role="tablist" aria-label="Test duration">
+      <button role="tab" data-time="15" aria-selected="false">15s</button>
+      <button role="tab" data-time="30" aria-selected="true" class="active">30s</button>
+      <button role="tab" data-time="60" aria-selected="false">60s</button>
+      <button role="tab" data-time="120" aria-selected="false">120s</button>
+    </nav>
+
+    <!-- Live stats -->
+    <div class="stats" aria-live="polite" aria-atomic="true">
+      <div><span class="stat-value" id="stat-wpm">0</span> wpm</div>
+      <div><span class="stat-value" id="stat-acc">100</span>% acc</div>
+      <div><span class="stat-value" id="stat-time">30</span>s</div>
+      <div><span class="stat-value" id="stat-errors">0</span> err</div>
+    </div>
+
+    <!-- Typing test area -->
+    <div class="typing-area" id="typing-area" tabindex="0" aria-label="Typing test area — click or press any key to start">
+      <input class="hidden-input" id="hidden-input" aria-hidden="true" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div class="caret" id="caret"></div>
+      <div class="words" id="words"></div>
+      <div class="blur-overlay" id="blur-overlay">Click here or press any key to focus</div>
+    </div>
+
+    <!-- Results (shown when test ends) -->
+    <div class="results" id="results" aria-label="Test results">
+      <div class="results-title">Test Complete</div>
+      <div class="results-grid">
+        <div class="result-item">
+          <span class="result-label">WPM</span>
+          <span class="result-value wpm-big" id="res-wpm">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Accuracy</span>
+          <span class="result-value accuracy" id="res-acc">0%</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Errors</span>
+          <span class="result-value errors" id="res-errors">0</span>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Characters</span>
+          <span class="result-value" id="res-chars">0</span>
+        </div>
+      </div>
+      <button class="restart-btn" id="results-restart" aria-label="Try again">↻ Try Again</button>
+    </div>
+
+    <!-- Competition leaderboard (shown after test in competition mode) -->
+    <div class="comp-leaderboard" id="comp-leaderboard" style="display:none" aria-label="Competition leaderboard">
+      <div class="comp-lb-header">
+        <h3 class="comp-lb-title">🏆 Leaderboard</h3>
+        <span class="comp-lb-info" id="comp-lb-info"></span>
+      </div>
+      <table class="comp-lb-table">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>WPM</th><th>Acc</th></tr>
+        </thead>
+        <tbody id="comp-lb-body"></tbody>
+      </table>
+      <div class="comp-lb-footer">
+        <span class="comp-lb-deadline" id="comp-lb-deadline"></span>
+        <button class="modal-btn comp-danger" id="comp-end-btn" style="display:none" aria-label="End competition">End Competition</button>
+      </div>
+    </div>
+
+    <!-- Restart -->
+    <div class="restart-row">
+      <button class="restart-btn" id="restart-btn" aria-label="Restart test">↻ Restart</button>
+      <span class="shortcut-hint">Tab + Enter to restart</span>
+    </div>
+
+  </div>
+
+  <!-- ── Competition Modals (outside wrapper) ── -->
+
+  <!-- Create competition modal -->
+  <div class="modal-overlay" id="comp-create-modal" style="display:none">
+    <div class="modal" role="dialog" aria-label="Create competition">
+      <div id="comp-create-form">
+        <h2 class="modal-title">🏆 Create Competition</h2>
+
+        <div class="modal-field">
+          <label for="comp-creator-name">Your Name</label>
+          <input type="text" id="comp-creator-name" placeholder="Enter your name…" maxlength="20" autocomplete="off">
+        </div>
+
+        <div class="modal-field">
+          <label for="comp-duration">Test Duration</label>
+          <select id="comp-duration">
+            <option value="15">15 seconds</option>
+            <option value="30" selected>30 seconds</option>
+            <option value="60">60 seconds</option>
+            <option value="120">120 seconds</option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label for="comp-metric">Rank By</label>
+          <select id="comp-metric">
+            <option value="wpm" selected>WPM (fastest wins)</option>
+            <option value="accuracy">Accuracy (most precise wins)</option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label for="comp-deadline">Deadline</label>
+          <select id="comp-deadline">
+            <option value="1">1 hour</option>
+            <option value="3">3 hours</option>
+            <option value="6" selected>6 hours</option>
+            <option value="12">12 hours</option>
+            <option value="24">24 hours</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button class="modal-btn comp-primary" id="comp-create-btn">Create</button>
+          <button class="modal-btn comp-secondary" id="comp-create-cancel">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Shown after creation -->
+      <div id="comp-link-area" style="display:none">
+        <h2 class="modal-title">🎉 Competition Created!</h2>
+        <p class="modal-desc">Share this link with your friends:</p>
+        <div class="comp-link-row">
+          <input type="text" id="comp-link-input" readonly class="comp-link-field" aria-label="Competition link">
+          <button class="modal-btn comp-accent" id="comp-link-copy">Copy</button>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn comp-primary" id="comp-create-close">Start Typing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Username prompt modal -->
+  <div class="modal-overlay" id="comp-name-modal" style="display:none">
+    <div class="modal" role="dialog" aria-label="Enter your name">
+      <h2 class="modal-title">👋 Join Competition</h2>
+      <p class="modal-desc">Choose a name for the leaderboard</p>
+      <div class="modal-field">
+        <input type="text" id="comp-name-input" placeholder="Your name…" maxlength="20" autocomplete="off">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn comp-primary" id="comp-name-submit">Join</button>
+        <button class="modal-btn comp-secondary" id="comp-name-skip">Skip (Anonymous)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="words.js"></script>
+  <script src="script.js"></script>
+  <script src="competition.js"></script>
+</body>
+</html>
