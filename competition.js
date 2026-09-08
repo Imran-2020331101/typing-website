@@ -265,6 +265,11 @@
 
     container.style.display = "block";
     document.body.classList.add("comp-results-visible");
+
+    // Scroll results + leaderboard into view so user doesn't have to scroll
+    setTimeout(function () {
+      document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
   function hideLeaderboard() {
