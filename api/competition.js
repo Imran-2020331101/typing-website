@@ -83,13 +83,14 @@ module.exports = async function handler(req, res) {
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  var REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-  var REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Support both Vercel KV naming (KV_REST_API_*) and direct Upstash naming (UPSTASH_REDIS_REST_*)
+  var REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  var REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
 
   if (!REDIS_URL || !REDIS_TOKEN) {
     return res.status(500).json({
       error:
-        "Server not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.",
+        "Server not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN (or KV_REST_API_URL and KV_REST_API_TOKEN).",
     });
   }
 
